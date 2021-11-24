@@ -22,19 +22,19 @@ from opencensus.trace.tracer import Tracer
 
 # Logging
 logger = logging.getLogger(__name__)
-handler = AzureLogHandler(connection_string='InstrumentationKey=2e42b895-b442-445d-aaea-78fd04a3dc03')
+handler = AzureLogHandler(connection_string='InstrumentationKey=f11d8b5f-3548-4fe9-9c53-7a32b8521c9a')
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
 # Metrics
 exporter = metrics_exporter.new_metrics_exporter(
   enable_standard_metrics=True,
-  connection_string='InstrumentationKey=2e42b895-b442-445d-aaea-78fd04a3dc03')
+  connection_string='InstrumentationKey=f11d8b5f-3548-4fe9-9c53-7a32b8521c9a')
 
 # Tracing
 tracer = Tracer(
     exporter=AzureExporter(
-        connection_string='InstrumentationKey=2e42b895-b442-445d-aaea-78fd04a3dc03'),
+        connection_string='InstrumentationKey=f11d8b5f-3548-4fe9-9c53-7a32b8521c9a'),
     sampler=ProbabilitySampler(1.0),
 )
 
@@ -43,7 +43,7 @@ app = Flask(__name__)
 # Requests
 middleware = FlaskMiddleware(
     app,
-    exporter=AzureExporter(connection_string="InstrumentationKey=2e42b895-b442-445d-aaea-78fd04a3dc03"),
+    exporter=AzureExporter(connection_string="InstrumentationKey=f11d8b5f-3548-4fe9-9c53-7a32b8521c9a"),
     sampler=ProbabilitySampler(rate=1.0),
 )
 
@@ -66,7 +66,22 @@ else:
     title = app.config['TITLE']
 
 # Redis Connection
-r = redis.Redis()
+#r = redis.Redis()
+
+# Redis configurations
+redis_server = os.environ['REDIS']
+
+# Redis Connection to another container
+try:
+   if "REDIS_PWD" in os.environ:
+      r = redis.StrictRedis(host=redis_server,
+                        port=6379,
+                        password=os.environ['REDIS_PWD'])
+   else:
+      r = redis.Redis(redis_server)
+   r.ping()
+except redis.ConnectionError:
+   exit('Failed to connect to Redis, terminating.')
 
 # Change title to host name to demo NLB
 if app.config['SHOWHOST'] == "true":
